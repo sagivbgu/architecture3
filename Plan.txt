@@ -1,0 +1,88 @@
+Every R rounds one of the drones is "eliminated", the last drone left in the game is the winner of the game.
+
+Each drone has (all floating points):
+    (coordinate x, coordinate y)
+    current speed (increased or decreased in each round)
+    direction (angle from x-axis)
+    score (maybe not floating point)
+    ID
+
+Each turn a drone:
+    Moves according to its place, current heading, speed.
+    Calls mayDestroy(new_position). Returns TRUE if the drone may destroy the target, otherwise FALSE.
+        (drones do not know the coordinates of the target on the board game).
+    If the current target is destroyed, a new target is created at a random position on the game board
+    Randomly changes its speed and heading.
+
+Drone movement:
+    When the next location is greater than the board width or height, or is negative in either axis (this
+    requires checking 4 conditions), subtract or add the torus cycle (100 in this example) if needed.
+    Speed may also change beyond the bounds (0 to 100), in this case we cut off the value to the respective bound.
+
+Threads (co-routines) in the game:
+    Each drone (A drone’s co-routine number is its id, which should be visible to it as an argument at activation (either in a register, or on its own stack, your choice))
+    The target
+    The scheduler (manages when to run the other threads). WRITTEN IN A SEPARATE FILE! (details in the assignment page).
+    The printer (prints the current state of the game board each K steps, where step means an execution step of one drone. Detailed in the assignment page).
+
+Command line arguments:
+    ass3 <N> <R> <K> <d> <seed>
+
+When program starts (Main):
+    Parse command line arguments
+    Create the initial state configuration of drones and the initial state of the target
+    initialize appropriate drones and target
+    Pass control to a scheduler co-routine which decides the appropriate scheduling for the co-routines.
+        The scheduling algorithm for drones is ROUND ROBIN.
+    **** All other functions detailed in the assignment page ****
+
+Initial configuration:
+    Calculated randomly with 16 bit resolution (for each required number) by the main() function.
+    Initial angle values are floating point in the range [0,360], but note that you need to convert angles into radians.
+    Allocate a dynamic array of drones, with their current positions, speeds, headings, and scores.
+        Every co-routine will be able to access this array for reading and writing.
+    Allocate space and initialize the co-routine structures. Two additional co-routines should be initialized: scheduler and printer.
+    Configuration order:
+        1. initialize the target
+        2. initialize the drones
+    Random coordinate generation order is : x coordinate, y coordinate (and for the drones the speed, and the angle is last).
+
+Components:
+    Main
+    Scheduler
+    Randomization function
+    Printer
+    Target
+    Drone
+
+* Make all possible variables global
+* You should use the label main as your entry point and also declare "global main", so you could compile with gcc (and not with ld)
+* Files:
+    ass3.s (contains main(), common functions, and global variables)
+    scheduler.s
+    printer.s
+    drone.s
+    target.s
+    Executable must be named ass3
+* Allowed C functions:
+    printf, fprintf, sscanf, malloc, calloc, free
+
+
+Friday, 12.6:
+    Main -> Sagiv
+        All except calls to the randomization function
+    Create all .s files -> Sagiv
+    
+    scheduler -> Zohar
+        All except calls to the randomization function
+    Randomization function -> Zohar
+
+Monday, 15.6:
+    Target
+    Printer
+
+Wednesday, 17.6:
+    Drone
+
+Friday, 19.6:
+    Debugging
