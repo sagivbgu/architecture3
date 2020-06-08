@@ -22,9 +22,9 @@ section .text
     align 16
     global main
     extern start_scheduler ; TODO
+    extern sscanf
     ; extern printf
     ; extern fprintf
-    ; extern sscanf
     ; extern malloc 
     ; extern calloc 
     ; extern free 
@@ -60,42 +60,35 @@ popad
 %endmacro
 
 ; %1 is the format, %2 is the pointer to destination
-%macro parseArgument %1 %2
+%macro parseArgument 2
+    add ebx, 4
+    mov edx, [ebx] ; edx = argv[i] (starting i = 1)
     pushad
     push %2
     push %1
     push edx
     call sscanf
-    popad
     add esp, 12
+    popad
 %endmacro
 
 main:
     mov ebp, esp
 
     processArguments:
-        mov ecx, [esp+4] ; ecx = argc
+        ; mov ecx, [esp+4] ; ecx = argc
         mov ebx, [esp+8] ; ebx = argv
 
-        ; Skip argv[0], it's just the file path
-        add ebx, 4
-        dec ecx
-
-        mov edx, [ebx] ; edx = argv[i] (starting i = 1)
+        ; Inside the macro, skips argv[0], it's just the file path
         parseArgument integerFormat, drones_N
-        add ebx, 4
         parseArgument integerFormat, roundsTillElimination_R
-        add ebx, 4
         parseArgument integerFormat, stepsTillPrinting_K
-        add ebx, 4
         parseArgument floatFormat, destroyDistance_d
-        add ebx, 4
         parseArgument integerFormat, seed
-        add ebx, 4
 
     callScheduler:
         pushad
-        call start_scheduler
+        ; call start_scheduler
         popad
 
     finishProgram:
