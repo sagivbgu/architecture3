@@ -3,7 +3,11 @@ section .bss
     roundsTillElimination_R: resd 1
     stepsTillPrinting_K: resd 1
     destroyDistance_d: resd 1 ; float is 32 bit
-    seed: resd 1
+    seed: resd 1destroyDistance_d
+    dronesArray: resd 1 ; Pointer to array of drones_N drones, each contain:
+                        ;   current position X (type: 32 bit float), position Y (float),
+                        ;   speed (float), heading (float), score (32 bit int)
+                        ; Note: ID is implicit, it's the index in the drones array
 
 section .rodata
     newLine: db 10, 0 ; '\n'
@@ -11,8 +15,13 @@ section .rodata
     floatFormat: db "%f", 0
     printStringFormat: db "%s", 10, 0
 
-    ; NODEVALUE: equ 0 ; Offset of the value byte from the beginning of a node
-    ; NEXTNODE: equ 1 ; Offset of the next-node field (4 bytes) from the beginning of a node
+    ; Offsets from the beginning of a drone "struct"
+    DRONE_POSITION_X: equ 0
+    DRONE_POSITION_Y: equ 4
+    DRONE_SPEED: equ 8
+    DRONE_HEADING: equ 12
+    DRONE_SCORE: equ 16
+    DRONE_STRUCT_SIZE: equ 20
 
 section .data
     ; var2: dd 0
@@ -86,9 +95,29 @@ main:
         parseArgument floatFormat, destroyDistance_d
         parseArgument integerFormat, seed
 
+    allocateDronesArray:
+        mov eax, [drones_N]
+        mov ebx, DRONE_STRUCT_SIZE
+        mul ebx
+        ; Result in edx:eax, assuming we can ignore edx part
+        
+        pushad
+        push eax
+        call malloc
+        mov dword [dronesArray], eax
+        add esp, 4
+        popad
+
     callScheduler:
         pushad
         ; call start_scheduler
+        popad
+
+    freeDronesArray:
+        pushad
+        push [dronesArray]
+        call free
+        add esp, 4
         popad
 
     finishProgram:
