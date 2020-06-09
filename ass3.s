@@ -13,11 +13,37 @@ section .bss
     targetXposition: resd 1 ; float
     targetYposition: resd 1 ; float
 
+    CO_DRONES: resd 1 ; Pointer to array of the drones' co-routine structs
+
+    ; Stacks of co-routines
+    CO_SCHEDULER_STACK: resb CO_STKSZ
+    CO_TARGET_STACK: resb CO_STKSZ
+    CO_PRINTER_STACK: resb CO_STKSZ
+
+    TEMP_SP: resd 1 ; Temp stack pointer
+    MAIN_SP: resd 1 ; Stack pointer of main
+    CURRENT_CO: resd 1 ; Pointer to the current co-routine struct
+
+
 section .rodata
     newLine: db 10, 0 ; '\n'
     integerFormat: db "%d", 0
     floatFormat: db "%f", 0
     printStringFormat: db "%s", 10, 0
+
+    CO_STKSZ: equ 16*1024 ; Co-routine stack size
+
+    ; Offsets from the beginning of a co-routine "struct"
+    CO_CODE: equ 0 ; Address of code to execute (IP)
+    CO_STACK: equ 4
+
+    ; Co-routine structs
+    CO_SCHEDULER: dd CO_SCHEDULER_CODE ; TODO: Define CO_SCHEDULER_CODE inside scheduler.s
+                  dd CO_SCHEDULER_STACK + CO_STKSZ
+    CO_TARGET:    dd CO_TARGET_CODE ; TODO: Define CO_TARGET_CODE inside target.s
+                  dd CO_TARGET_STACK + CO_STKSZ
+    CO_PRINTER:   dd CO_PRINTER_CODE ; TODO: Define CO_PRINTER_CODE inside printer.s
+                  dd CO_PRINTER_STACK + CO_STKSZ
 
     ; Offsets from the beginning of a drone "struct"
     DRONE_POSITION_X: equ 0
@@ -30,7 +56,6 @@ section .rodata
 section .data
     ; var2: dd 0
     
-
 section .text                    	
     align 16
 
@@ -53,7 +78,6 @@ section .text
     global targetXposition
     global targetYposition
 
-    extern start_scheduler ; TODO
     extern sscanf
     ; extern printf
     ; extern fprintf
@@ -148,12 +172,17 @@ main:
 ;     Allocate space and initialize the co-routine structures. 
 ;     Two additional co-routines should be initialized: scheduler and printer.
 
-
-    callScheduler:
-        pushad
-        ; call start_scheduler
-        popad
-
+    start_scheduler:
+        pushad ; save registers of main ()
+        mov [MAIN_SP], esp ; save ESP of main ()
+        mov ebx, [CO_SCHEDULER]
+        jmp do_resume
+        
+    ; Needs to be jumped into
+    end_scheduler:
+        movESP, [MAIN_SP] ; restore ESP of main()
+        popad ; restore registers of main()
+    
     freeDronesArray:
         pushad
         push [dronesArray]
@@ -165,3 +194,54 @@ main:
         mov esp, ebp
         mov eax, 0 ; Program exit code
         ret
+
+; Assuming ebx is pointer to the co-routine struct
+co_init:
+    pushad
+
+    mov eax, [ebx + CO_CODE]
+    mov [TEMP_SP], esp
+    mov esp, [ebx + CO_STACK]
+    mov ebp, esp
+
+    push eax ; Push the return address
+    pushfd
+    pushad
+    
+    mov [ebx + CO_STACK], esp
+    
+    mov esp, [TEMP_SP]
+    popad
+    ret
+
+; TODO
+; Assuming ebx is the index of the drone
+drone_co_init:
+    ; pushad
+
+    ; mov ebx, [ebp+8] ; get co-routine ID number
+    ; mov ebx, [4*ebx + CORS]; get pointer to COi struct
+    ; mov eax, [ebx+CODEP]; get initial EIP value –pointer to COi function
+    ; mov [SPT], ESP; save ESP value
+    ; mov esp, [EBX+SPP]; get initial ESP value –pointer to COi stack
+    ; push eax; push initial “return” address
+    ; pushfd;push flags
+    ; pushad; push all other registers
+    ; mov [ebx+SPP], esp ; save new SPi value (after all the pushes)
+    ; mov ESP, [SPT]; restore ESP value
+
+    ; popad
+    ; ret
+
+; 'resume' needs to be called, not jumped into
+resume:
+    pushfd
+    pushad
+    mov edx, [CURRENT_CO]
+    mov [edx + CO_STACK], esp ; save current ESP
+do_resume: ; *** Assuming ebx is pointer to the co-routine struct to resume ***
+    mov esp, [ebx + CO_STACK]
+    mov [CURRENT_CO], ebx
+    popad ; restore resumed co-routine state
+    popfd
+    ret ; "return" to resumed co-routine
