@@ -1,13 +1,17 @@
 section .bss
+    ; Command line arguments
     drones_N: resd 1
     roundsTillElimination_R: resd 1
     stepsTillPrinting_K: resd 1
     destroyDistance_d: resd 1 ; float is 32 bit
     seed: resd 1destroyDistance_d
+
     dronesArray: resd 1 ; Pointer to array of drones_N drones, each contain:
                         ;   current position X (type: 32 bit float), position Y (float),
                         ;   speed (float), heading (float), score (32 bit int)
                         ; Note: ID is implicit, it's the index in the drones array
+    targetXposition: resd 1 ; float
+    targetYposition: resd 1 ; float
 
 section .rodata
     newLine: db 10, 0 ; '\n'
@@ -29,7 +33,26 @@ section .data
 
 section .text                    	
     align 16
+
     global main
+
+    global drones_N
+    global roundsTillElimination_R
+    global stepsTillPrinting_K
+    global destroyDistance_d
+    global seed
+
+    global dronesArray
+    global DRONE_POSITION_X
+    global DRONE_POSITION_Y
+    global DRONE_SPEED
+    global DRONE_HEADING
+    global DRONE_SCORE
+    global DRONE_STRUCT_SIZE
+    
+    global targetXposition
+    global targetYposition
+
     extern start_scheduler ; TODO
     extern sscanf
     ; extern printf
@@ -107,6 +130,24 @@ main:
         mov dword [dronesArray], eax
         add esp, 4
         popad
+
+    initializeTarget:
+        ; TODO: call randomization function to get:
+        ; x coordinate, y coordinate
+        nop ; TODO: Delete this command
+        
+    initializeDrones:
+        ; TODO: For each drone call randomization function to get (in this order):
+        ; x coordinate, y coordinate, speed, angle (and convert to radians)
+        ; and set score = 0
+        nop ; TODO: Delete this command
+        
+
+
+; Initial configuration:
+;     Allocate space and initialize the co-routine structures. 
+;     Two additional co-routines should be initialized: scheduler and printer.
+
 
     callScheduler:
         pushad
