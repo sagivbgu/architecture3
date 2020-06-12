@@ -1,31 +1,15 @@
-section .bss
-    ; Command line arguments
-    drones_N: resd 1
-    roundsTillElimination_R: resd 1
-    stepsTillPrinting_K: resd 1
-    destroyDistance_d: resd 1 ; float is 32 bit
-    seed: resd 1destroyDistance_d
-
-    dronesArray: resd 1 ; Pointer to array of drones_N drones, each contain:
-                        ;   current position X (type: 32 bit float), position Y (float),
-                        ;   speed (float), heading (float), score (32 bit int)
-                        ; Note: ID is implicit, it's the index in the drones array
-    targetXposition: resd 1 ; float
-    targetYposition: resd 1 ; float
-
-    CO_DRONES: resd 1 ; Pointer to array of the drones' co-routine structs
-
-    ; Stacks of co-routines
-    CO_SCHEDULER_STACK: resb CO_STKSZ
-    CO_TARGET_STACK: resb CO_STKSZ
-    CO_PRINTER_STACK: resb CO_STKSZ
-
-    TEMP_SP: resd 1 ; Temp stack pointer
-    MAIN_SP: resd 1 ; Stack pointer of main
-    CURRENT_CO: resd 1 ; Pointer to the current co-routine struct
-
-
 section .rodata
+    extern CO_SCHEDULER_CODE
+    extern CO_TARGET_CODE
+    extern CO_PRINTER_CODE
+    extern CO_DRONE_CODE
+    global DRONE_POSITION_X
+    global DRONE_POSITION_Y
+    global DRONE_SPEED
+    global DRONE_HEADING
+    global DRONE_SCORE
+    global DRONE_STRUCT_SIZE
+
     newLine: db 10, 0 ; '\n'
     integerFormat: db "%d", 0
     floatFormat: db "%f", 0
@@ -36,13 +20,14 @@ section .rodata
     ; Offsets from the beginning of a co-routine "struct"
     CO_CODE: equ 0 ; Address of code to execute (IP)
     CO_STACK: equ 4
+    CO_STRUCT_SIZE: equ 8
 
     ; Co-routine structs
-    CO_SCHEDULER: dd CO_SCHEDULER_CODE ; TODO: Define CO_SCHEDULER_CODE inside scheduler.s
+    CO_SCHEDULER: dd CO_SCHEDULER_CODE
                   dd CO_SCHEDULER_STACK + CO_STKSZ
-    CO_TARGET:    dd CO_TARGET_CODE ; TODO: Define CO_TARGET_CODE inside target.s
+    CO_TARGET:    dd CO_TARGET_CODE
                   dd CO_TARGET_STACK + CO_STKSZ
-    CO_PRINTER:   dd CO_PRINTER_CODE ; TODO: Define CO_PRINTER_CODE inside printer.s
+    CO_PRINTER:   dd CO_PRINTER_CODE
                   dd CO_PRINTER_STACK + CO_STKSZ
 
     ; Offsets from the beginning of a drone "struct"
@@ -53,48 +38,66 @@ section .rodata
     DRONE_SCORE: equ 16
     DRONE_STRUCT_SIZE: equ 20
 
-section .data
-    ; var2: dd 0
-    
-section .text                    	
-    align 16
-
-    global main
-
+section .bss
     global drones_N
     global roundsTillElimination_R
     global stepsTillPrinting_K
     global destroyDistance_d
     global seed
-
-    global dronesArray
-    global DRONE_POSITION_X
-    global DRONE_POSITION_Y
-    global DRONE_SPEED
-    global DRONE_HEADING
-    global DRONE_SCORE
-    global DRONE_STRUCT_SIZE
-    
     global targetXposition
     global targetYposition
+    global dronesArray
+
+    ; Command line arguments
+    drones_N: resd 1
+    roundsTillElimination_R: resd 1
+    stepsTillPrinting_K: resd 1
+    destroyDistance_d: resd 1 ; float is 32 bit
+    seed: resd 1
+
+    dronesArray: resd 1 ; Pointer to array of drones_N drones, each contain:
+                        ;   current position X (type: 32 bit float), position Y (float),
+                        ;   speed (float), heading (float), score (32 bit int)
+                        ; Note: ID is implicit, it's the index in the drones array
+    targetXposition: resd 1 ; float
+    targetYposition: resd 1 ; float
+
+    CODronesArray: resd 1 ; Pointer to array of the drones' co-routine structs
+
+    ; Stacks of co-routines
+    CO_SCHEDULER_STACK: resb CO_STKSZ
+    CO_TARGET_STACK: resb CO_STKSZ
+    CO_PRINTER_STACK: resb CO_STKSZ
+
+    TEMP_SP: resd 1 ; Temp stack pointer
+    MAIN_SP: resd 1 ; Stack pointer of main
+    CURRENT_CO: resd 1 ; Pointer to the current co-routine struct
+
+section .data
+    ; var2: dd 0
+    
+section .text
+    align 16
+    global main
+    global end_scheduler
 
     extern sscanf
     ; extern printf
     ; extern fprintf
-    ; extern malloc 
     ; extern calloc 
-    ; extern free 
+    extern malloc 
+    extern free
     
 
 %macro print 1
-pushad
-push %1
-call printf
-add esp, 4
-push dword [stdout]
-call fflush
-add esp, 4
-popad
+    pushad
+    push %1
+    call printf
+    add esp, 4
+    ; push dword [stdout]
+    ; call fflush
+    ; add esp, 4
+    popad
 %endmacro
 
 %macro pushReturn 0
@@ -128,6 +131,35 @@ popad
     popad
 %endmacro
 
+; %1 is number of items, %2 is size of each item,
+; %3 is where to put the pointer to the new memory
+%macro allocateMemory 3
+    pushad
+    push dword %3
+    push dword %2
+    push dword %1
+    pop eax
+    pop ebx
+    mul ebx
+    ; Result in edx:eax, assuming we can ignore edx part
+    
+    push eax
+    call malloc
+    add esp, 4
+    pop ebx
+    mov [ebx], eax
+    popad
+%endmacro
+
+; %1 is the address of the item to free
+%macro freeMemory 1
+    pushad
+    push %1
+    call free
+    add esp, 4
+    popad
+%endmacro
+
 main:
     mov ebp, esp
 
@@ -142,23 +174,38 @@ main:
         parseArgument floatFormat, destroyDistance_d
         parseArgument integerFormat, seed
 
-    allocateDronesArray:
-        mov eax, [drones_N]
-        mov ebx, DRONE_STRUCT_SIZE
-        mul ebx
-        ; Result in edx:eax, assuming we can ignore edx part
-        
-        pushad
-        push eax
-        call malloc
-        mov dword [dronesArray], eax
-        add esp, 4
-        popad
+    initializeScheduler:
+        mov ebx, CO_SCHEDULER
+        call co_init
+
+    initializePrinter:
+        mov ebx, CO_PRINTER
+        call co_init
 
     initializeTarget:
         ; TODO: call randomization function to get:
         ; x coordinate, y coordinate
-        nop ; TODO: Delete this command
+        mov ebx, CO_TARGET
+        call co_init
+
+    allocateDronesArray:
+        allocateMemory [drones_N], DRONE_STRUCT_SIZE, [dronesArray]
+        
+    allocateDronesCoRoutines:
+        allocateMemory [drones_N], CO_STRUCT_SIZE, [CODronesArray]
+        mov ebx, CODronesArray
+        mov ecx, 0
+
+        allocateDronesCoRoutinesLoop:
+            mov dword [ebx], CO_DRONE_CODE
+            mov edx, [ebx + CO_STACK]
+            allocateMemory 1, CO_STKSZ, [edx] ; Allocate memory for the stack
+            call co_init
+            
+            add ebx, CO_STRUCT_SIZE
+            inc ecx
+            cmp ecx, [drones_N]
+            jne allocateDronesCoRoutinesLoop
         
     initializeDrones:
         ; TODO: For each drone call randomization function to get (in this order):
@@ -166,12 +213,6 @@ main:
         ; and set score = 0
         nop ; TODO: Delete this command
         
-
-
-; Initial configuration:
-;     Allocate space and initialize the co-routine structures. 
-;     Two additional co-routines should be initialized: scheduler and printer.
-
     start_scheduler:
         pushad ; save registers of main ()
         mov [MAIN_SP], esp ; save ESP of main ()
@@ -180,15 +221,22 @@ main:
         
     ; Needs to be jumped into
     end_scheduler:
-        movESP, [MAIN_SP] ; restore ESP of main()
+        mov esp, [MAIN_SP] ; restore ESP of main()
         popad ; restore registers of main()
     
-    freeDronesArray:
-        pushad
-        push [dronesArray]
-        call free
-        add esp, 4
-        popad
+    freeDrones:
+        mov ebx, [CODronesArray]
+        mov ecx, 0
+        
+        freeDronesCoRoutinesLoop:
+            freeMemory dword [ebx + CO_STACK]
+            add ebx, CO_STRUCT_SIZE
+            inc ecx
+            cmp ecx, [drones_N]
+            jne freeDronesCoRoutinesLoop
+
+        freeMemory dword [dronesArray]
+        freeMemory dword [CODronesArray]
 
     finishProgram:
         mov esp, ebp
@@ -213,25 +261,6 @@ co_init:
     mov esp, [TEMP_SP]
     popad
     ret
-
-; TODO
-; Assuming ebx is the index of the drone
-drone_co_init:
-    ; pushad
-
-    ; mov ebx, [ebp+8] ; get co-routine ID number
-    ; mov ebx, [4*ebx + CORS]; get pointer to COi struct
-    ; mov eax, [ebx+CODEP]; get initial EIP value –pointer to COi function
-    ; mov [SPT], ESP; save ESP value
-    ; mov esp, [EBX+SPP]; get initial ESP value –pointer to COi stack
-    ; push eax; push initial “return” address
-    ; pushfd;push flags
-    ; pushad; push all other registers
-    ; mov [ebx+SPP], esp ; save new SPi value (after all the pushes)
-    ; mov ESP, [SPT]; restore ESP value
-
-    ; popad
-    ; ret
 
 ; 'resume' needs to be called, not jumped into
 resume:
