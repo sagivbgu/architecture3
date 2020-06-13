@@ -22,13 +22,8 @@ section .rodata
     CO_STACK: equ 4
     CO_STRUCT_SIZE: equ 8
 
-    ; Co-routine structs
-    CO_SCHEDULER: dd CO_SCHEDULER_CODE
-                  dd CO_SCHEDULER_STACK + CO_STKSZ
-    CO_TARGET:    dd CO_TARGET_CODE
-                  dd CO_TARGET_STACK + CO_STKSZ
-    CO_PRINTER:   dd CO_PRINTER_CODE
-                  dd CO_PRINTER_STACK + CO_STKSZ
+    CO_DRONE_START_OF_STACK: equ 8
+    CO_DRONE_STRUCT_SIZE: equ 12
 
     ; Offsets from the beginning of a drone "struct"
     DRONE_POSITION_X: equ 0
@@ -74,7 +69,13 @@ section .bss
     CURRENT_CO: resd 1 ; Pointer to the current co-routine struct
 
 section .data
-    ; var2: dd 0
+    ; Co-routine structs
+    CO_SCHEDULER: dd CO_SCHEDULER_CODE
+                  dd CO_SCHEDULER_STACK + CO_STKSZ
+    CO_TARGET:    dd CO_TARGET_CODE
+                  dd CO_TARGET_STACK + CO_STKSZ
+    CO_PRINTER:   dd CO_PRINTER_CODE
+                  dd CO_PRINTER_STACK + CO_STKSZ
     
 section .text
     align 16
@@ -189,20 +190,23 @@ main:
         call co_init
 
     allocateDronesArray:
-        allocateMemory [drones_N], DRONE_STRUCT_SIZE, [dronesArray]
+        allocateMemory [drones_N], DRONE_STRUCT_SIZE, dronesArray
         
     allocateDronesCoRoutines:
-        allocateMemory [drones_N], CO_STRUCT_SIZE, [CODronesArray]
-        mov ebx, CODronesArray
+        allocateMemory [drones_N], CO_DRONE_STRUCT_SIZE, CODronesArray
+        mov ebx, [CODronesArray]
         mov ecx, 0
 
         allocateDronesCoRoutinesLoop:
             mov dword [ebx], CO_DRONE_CODE
-            mov edx, [ebx + CO_STACK]
-            allocateMemory 1, CO_STKSZ, [edx] ; Allocate memory for the stack
+            lea edx, [ebx + CO_DRONE_START_OF_STACK]
+            allocateMemory 1, CO_STKSZ, edx ; Allocate memory for the stack
+            mov edx, [ebx + CO_DRONE_START_OF_STACK]
+            add edx, CO_STKSZ
+            mov [ebx + CO_STACK], edx
             call co_init
             
-            add ebx, CO_STRUCT_SIZE
+            add ebx, CO_DRONE_STRUCT_SIZE
             inc ecx
             cmp ecx, [drones_N]
             jne allocateDronesCoRoutinesLoop
@@ -216,7 +220,7 @@ main:
     start_scheduler:
         pushad ; save registers of main ()
         mov [MAIN_SP], esp ; save ESP of main ()
-        mov ebx, [CO_SCHEDULER]
+        mov ebx, CO_SCHEDULER
         jmp do_resume
         
     ; Needs to be jumped into
@@ -229,8 +233,9 @@ main:
         mov ecx, 0
         
         freeDronesCoRoutinesLoop:
-            freeMemory dword [ebx + CO_STACK]
-            add ebx, CO_STRUCT_SIZE
+            mov edx, [ebx + CO_DRONE_START_OF_STACK]
+            freeMemory edx
+            add ebx, CO_DRONE_STRUCT_SIZE
             inc ecx
             cmp ecx, [drones_N]
             jne freeDronesCoRoutinesLoop
