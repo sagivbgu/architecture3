@@ -72,17 +72,17 @@ Friday, 12.6:
     Main -> Sagiv
         All except calls to the randomization function
     Create all .s files -> Sagiv
-    
-    scheduler -> Zohar
-        All except calls to the randomization function
-    Randomization function -> Zohar
 
 Monday, 15.6:
-    Target
-    Printer
+    Randomization function -> Zohar
+    Scheduler -> Zohar
 
 Wednesday, 17.6:
-    Drone
+    Target -> Sagiv
+    Printer -> Sagiv
 
 Friday, 19.6:
+    Drone
+
+Saturday, 20.6:
     Debugging

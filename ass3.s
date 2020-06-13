@@ -8,6 +8,7 @@ section .rodata
     global DRONE_SPEED
     global DRONE_HEADING
     global DRONE_SCORE
+    global DRONE_ACTIVE
     global DRONE_STRUCT_SIZE
 
     newLine: db 10, 0 ; '\n'
@@ -31,7 +32,8 @@ section .rodata
     DRONE_SPEED: equ 8
     DRONE_HEADING: equ 12
     DRONE_SCORE: equ 16
-    DRONE_STRUCT_SIZE: equ 20
+    DRONE_ACTIVE: equ 20
+    DRONE_STRUCT_SIZE: equ 24
 
 section .bss
     global drones_N
@@ -81,6 +83,7 @@ section .text
     align 16
     global main
     global end_scheduler
+    global resume
 
     extern sscanf
     ; extern printf
