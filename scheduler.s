@@ -1,25 +1,25 @@
 section .text
     global CO_SCHEDULER_CODE
     extern end_scheduler
-    extern numDrones
-    extern kSteps
-    extern R
+    extern drones_N
+    extern stepsTillPrinting_K
+    extern roundsTillElimination_R
 
 section .data
-    index: db 0
-    currDrone: db 0
+    index: dd 0
+    currDrone: dd 0
 
 %macro activeCurrDrone 0
-    mov bl, [currDrone]
-    inc bl
-    cmp ah, bl
+    mov ebx, [currDrone]
+    inc ebx
+    cmp edx, ebx
     jne end
     ;;active next drone
     %%end:
 %endmacro 
 
 %macro printK 0
-    cmp ah, 0
+    cmp ebx, 0
     ;; call the printer
 %endmacro
 
@@ -29,13 +29,15 @@ section .data
 
 CO_SCHEDULER_CODE:
 
-    mov ax, [index]
-    div numDrones ;;ah has the reminder
+    mov eax, [index]
+    mov edx, 0
+    div [drones_N] ;;edx has the reminder
     activeCurrDrone
-    div kSteps
-    div R
+    div stepsTillPrinting_K
+    printK
+    div roundsTillElimination_R
     RRounds
-    inc ax
+    inc eax
     cmp byte 1, [numDrones]
     jne CO_SCHEDULER_CODE
 
