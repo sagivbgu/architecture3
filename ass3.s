@@ -15,6 +15,7 @@ section .rodata
     integerFormat: db "%d", 0
     floatFormat: db "%f", 0
     printStringFormat: db "%s", 10, 0
+    toDiv: dq 100.0
 
     CO_STKSZ: equ 16*1024 ; Co-routine stack size
 
@@ -50,7 +51,7 @@ section .bss
     roundsTillElimination_R: resd 1
     stepsTillPrinting_K: resd 1
     destroyDistance_d: resd 1 ; float is 32 bit
-    seed: resd 1
+    seed: resd 4 
 
     dronesArray: resd 1 ; Pointer to array of drones_N drones, each contain:
                         ;   current position X (type: 32 bit float), position Y (float),
@@ -79,6 +80,9 @@ section .data
     CO_PRINTER:   dd CO_PRINTER_CODE
                   dd CO_PRINTER_STACK + CO_STKSZ
     
+    max: dw 0xFFFF
+    randomResult: dt 0
+
 section .text
     align 16
     global main
@@ -164,6 +168,32 @@ section .text
     popad
 %endmacro
 
+%macro LSR 1
+    pushReturn
+    mov ecx, 16
+    ;mov eax, 0
+    loopLSR:
+        cmp ecx, 0
+        je endLoopLSR
+        dec ecx
+        mov ebx, 0
+        mov bl, 45 ; 101101 - all the taps for the xor
+        clc ; the carry gets the shl\shr bit
+        and bl, [seed] ;now we can know how many 1's in the taps
+        jpo odd ; if the number of bits is even 
+        even:
+        ;rcl byte [eax], 1 ;even number of 1's so the xor's result is 0
+        shr word [seed], 1
+        jmp loopLSR
+        odd:
+        stc ; set carry flag to 1 
+        ;rcl byte [eax], 1 ;even number of 1's so the xor's result is 0
+        rcr word [seed], 1
+        jmp loopLSR
+    endLoopLSR:
+    popReturn
+%endmacro
+
 main:
     mov ebp, esp
 
@@ -215,6 +245,7 @@ main:
             jne allocateDronesCoRoutinesLoop
         
     initializeDrones:
+        call randomization
         ; TODO: For each drone call randomization function to get (in this order):
         ; x coordinate, y coordinate, speed, angle (and convert to radians)
         ; and set score = 0
@@ -282,3 +313,15 @@ do_resume: ; *** Assuming ebx is pointer to the co-routine struct to resume ***
     popad ; restore resumed co-routine state
     popfd
     ret ; "return" to resumed co-routine
+
+;before calling needs to update the max according to the range
+randomization:
+    LSR seed ;eax has the random number
+    finit ; initialize the fp system
+    fild dword [seed] ;load the random number
+    ;now we need to scale the number to the right range
+    fdiv dword [max]
+    fld qword [toDiv]
+    fmul 
+    fstp tbyte[randomResult]
+    ret
