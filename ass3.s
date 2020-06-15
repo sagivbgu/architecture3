@@ -15,7 +15,7 @@ section .rodata
     integerFormat: db "%d", 0
     floatFormat: db "%f", 0
     printStringFormat: db "%s", 10, 0
-    toDiv: dq 100.0
+    toDiv: dd 100
 
     CO_STKSZ: equ 16*1024 ; Co-routine stack size
 
@@ -51,7 +51,7 @@ section .bss
     roundsTillElimination_R: resd 1
     stepsTillPrinting_K: resd 1
     destroyDistance_d: resd 1 ; float is 32 bit
-    seed: resd 4 
+    seed: resd 1 
 
     dronesArray: resd 1 ; Pointer to array of drones_N drones, each contain:
                         ;   current position X (type: 32 bit float), position Y (float),
@@ -72,6 +72,7 @@ section .bss
     CURRENT_CO: resd 1 ; Pointer to the current co-routine struct
 
 section .data
+    global currDrone
     ; Co-routine structs
     CO_SCHEDULER: dd CO_SCHEDULER_CODE
                   dd CO_SCHEDULER_STACK + CO_STKSZ
@@ -81,7 +82,8 @@ section .data
                   dd CO_PRINTER_STACK + CO_STKSZ
     
     max: dw 0xFFFF
-    randomResult: dt 0
+    randomResult: dw 0
+    currDrone: dd 0
 
 section .text
     align 16
@@ -172,7 +174,7 @@ section .text
     pushReturn
     mov ecx, 16
     ;mov eax, 0
-    loopLSR:
+    %%loopLSR:
         cmp ecx, 0
         je endLoopLSR
         dec ecx
@@ -184,12 +186,12 @@ section .text
         even:
         ;rcl byte [eax], 1 ;even number of 1's so the xor's result is 0
         shr word [seed], 1
-        jmp loopLSR
+        jmp %%loopLSR
         odd:
         stc ; set carry flag to 1 
         ;rcl byte [eax], 1 ;even number of 1's so the xor's result is 0
         rcr word [seed], 1
-        jmp loopLSR
+        jmp %%loopLSR
     endLoopLSR:
     popReturn
 %endmacro
@@ -316,12 +318,12 @@ do_resume: ; *** Assuming ebx is pointer to the co-routine struct to resume ***
 
 ;before calling needs to update the max according to the range
 randomization:
-    LSR seed ;eax has the random number
+    LSR seed ;seed has the random num
     finit ; initialize the fp system
     fild dword [seed] ;load the random number
     ;now we need to scale the number to the right range
-    fdiv dword [max]
-    fld qword [toDiv]
-    fmul 
-    fstp tbyte[randomResult]
+    fidiv dword [max]
+    fild dword [toDiv] 
+    fmulp st1
+    fstp dword[randomResult] 
     ret
