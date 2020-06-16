@@ -10,12 +10,14 @@ section .rodata
     global DRONE_SCORE
     global DRONE_ACTIVE
     global DRONE_STRUCT_SIZE
+    global floatFormat
+    global integerFormat
 
-    newLine: db 10, 0 ; '\n'
     integerFormat: db "%d", 0
     floatFormat: db "%f", 0
     printStringFormat: db "%s", 10, 0
-    toDiv: dd 100
+
+    max: dw 0xFFFF
 
     CO_STKSZ: equ 16*1024 ; Co-routine stack size
 
@@ -81,7 +83,7 @@ section .data
     CO_PRINTER:   dd CO_PRINTER_CODE
                   dd CO_PRINTER_STACK + CO_STKSZ
     
-    max: dw 0xFFFF
+    toDiv: dd 100
     randomResult: dw 0
     currDrone: dd 0
 
@@ -98,17 +100,6 @@ section .text
     extern malloc 
     extern free
     
-
-%macro print 1
-    pushad
-    push %1
-    call printf
-    add esp, 4
-    ; push dword [stdout]
-    ; call fflush
-    ; add esp, 4
-    popad
-%endmacro
 
 %macro pushReturn 0
     push edx
@@ -171,7 +162,7 @@ section .text
 %endmacro
 
 %macro LSR 1
-    pushReturn
+    pushad
     mov ecx, 16
     ;mov eax, 0
     %%loopLSR:
@@ -193,7 +184,18 @@ section .text
         rcr word [seed], 1
         jmp %%loopLSR
     endLoopLSR:
-    popReturn
+    popad
+%endmacro
+
+; Get a random number in [0, %1] and put it in %2
+; NOTE: %2 can't be eax
+%macro getRandomInto 2
+    push eax
+    mov dword [toDiv], %1
+    call randomization
+    mov eax, [randomResult]
+    mov %2, eax
+    pop eax
 %endmacro
 
 main:
@@ -219,8 +221,8 @@ main:
         call co_init
 
     initializeTarget:
-        ; TODO: call randomization function to get:
-        ; x coordinate, y coordinate
+        getRandomInto 100, [targetXposition]
+        getRandomInto 100, [targetYposition]
         mov ebx, CO_TARGET
         call co_init
 
@@ -247,12 +249,22 @@ main:
             jne allocateDronesCoRoutinesLoop
         
     initializeDrones:
-        call randomization
-        ; TODO: For each drone call randomization function to get (in this order):
-        ; x coordinate, y coordinate, speed, angle (and convert to radians)
-        ; and set score = 0
-        nop ; TODO: Delete this command
-        
+        mov ebx, [dronesArray]
+        mov ecx, 0
+
+        initializeDronesLoop:
+            getRandomInto 100, [ebx + DRONE_POSITION_X]
+            getRandomInto 100, [ebx + DRONE_POSITION_Y]
+            getRandomInto 100, [ebx + DRONE_SPEED]
+            getRandomInto 360, [ebx + DRONE_HEADING]
+            mov dword [ebx + DRONE_ACTIVE], 1
+            mov dword [ebx + DRONE_SCORE], 0
+
+            add ebx, CO_DRONE_STRUCT_SIZE
+            inc ecx
+            cmp ecx, [drones_N]
+            jne initializeDronesLoop
+
     start_scheduler:
         pushad ; save registers of main ()
         mov [MAIN_SP], esp ; save ESP of main ()
@@ -316,7 +328,7 @@ do_resume: ; *** Assuming ebx is pointer to the co-routine struct to resume ***
     popfd
     ret ; "return" to resumed co-routine
 
-;before calling needs to update the max according to the range
+;before calling needs to update the toDiv according to the range
 randomization:
     LSR seed ;seed has the random num
     finit ; initialize the fp system
