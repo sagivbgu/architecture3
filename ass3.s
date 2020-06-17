@@ -10,6 +10,7 @@ section .rodata
     global DRONE_SCORE
     global DRONE_ACTIVE
     global DRONE_STRUCT_SIZE
+    global CO_DRONE_STRUCT_SIZE
     global floatFormat
     global integerFormat
 
@@ -47,6 +48,7 @@ section .bss
     global targetXposition
     global targetYposition
     global dronesArray
+    global CODronesArray
 
     ; Command line arguments
     drones_N: resd 1
@@ -74,7 +76,11 @@ section .bss
     CURRENT_CO: resd 1 ; Pointer to the current co-routine struct
 
 section .data
+    global CO_SCHEDULER
     global currDrone
+    global toDiv
+    global randomResult
+    
     ; Co-routine structs
     CO_SCHEDULER: dd CO_SCHEDULER_CODE
                   dd CO_SCHEDULER_STACK + CO_STKSZ
@@ -91,7 +97,10 @@ section .text
     align 16
     global main
     global end_scheduler
+    global randomization
     global resume
+
+    extern createTarget
 
     extern sscanf
     ; extern printf
@@ -221,8 +230,7 @@ main:
         call co_init
 
     initializeTarget:
-        getRandomInto 100, [targetXposition]
-        getRandomInto 100, [targetYposition]
+        call createTarget
         mov ebx, CO_TARGET
         call co_init
 

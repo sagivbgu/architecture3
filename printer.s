@@ -14,9 +14,11 @@ extern DRONE_SPEED
 extern DRONE_HEADING
 extern DRONE_SCORE
 extern DRONE_ACTIVE
+extern CO_DRONE_STRUCT_SIZE
 extern targetXposition
 extern targetYposition
 extern integerFormat
+extern resume
 extern printf
 
 %macro print 1
@@ -72,15 +74,15 @@ CO_PRINTER_CODE:
         printInt ecx
         dec ecx
         print separator
-        printInt [ebx + DRONE_POSITION_X]
+        printInt dword [ebx + DRONE_POSITION_X]
         print separator
-        printInt [ebx + DRONE_POSITION_Y]
+        printInt dword [ebx + DRONE_POSITION_Y]
         print separator
-        printInt [ebx + DRONE_HEADING]
+        printInt dword [ebx + DRONE_HEADING]
         print separator
-        printFloat [ebx + DRONE_SPEED]
+        printFloat dword [ebx + DRONE_SPEED]
         print separator
-        printInt [ebx + DRONE_SCORE]
+        printInt dword [ebx + DRONE_SCORE]
         print newLine
 
     proceedPrintLoop:
