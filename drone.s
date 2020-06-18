@@ -165,6 +165,7 @@ mayDestroy:
     fisub dword [targetYposition] ; st0 = droneY - targatY
     fmul st0, st0
 
+    faddp
     fsqrt
     fld dword [destroyDistance_d]
     fcomi
