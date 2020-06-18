@@ -78,8 +78,10 @@ section .bss
 section .data
     global CO_PRINTER
     global CO_SCHEDULER
+    global CO_TARGET
     global currDrone
     global toDiv
+    global toSub
     global randomResult
     
     ; Co-routine structs
@@ -100,6 +102,7 @@ section .text
     global main
     global end_scheduler
     global randomization
+    global floatToInt
     global resume
 
     extern createTarget
@@ -203,18 +206,24 @@ section .text
 %macro getRandomInto 2
     push eax
     mov dword [toDiv], %1
+    mov dword [toSub], 0
     call randomization
     mov eax, [randomResult]
     mov %2, eax
     pop eax
 %endmacro
 
-%macro floatToInt 0
-    finit
-    fild dword[randomResult]
-    frndint
-    fstp dword[randomResult]
-    ffree
+; Get a random number in [0, %1] and put it in %2
+; NOTE: %2 can't be eax
+%macro getRandomIntInto 2
+    push eax
+    mov dword [toDiv], %1
+    mov dword [toSub], 0
+    call randomization
+    call floatToInt
+    mov eax, [randomResult]
+    mov %2, eax
+    pop eax
 %endmacro
 
 main:
@@ -271,8 +280,8 @@ main:
         mov ecx, 0
 
         initializeDronesLoop:
-            getRandomInto 100, [ebx + DRONE_POSITION_X]
-            getRandomInto 100, [ebx + DRONE_POSITION_Y]
+            getRandomIntInto 100, [ebx + DRONE_POSITION_X]
+            getRandomIntInto 100, [ebx + DRONE_POSITION_Y]
             getRandomInto 100, [ebx + DRONE_SPEED]
             getRandomInto 360, [ebx + DRONE_HEADING]
             mov dword [ebx + DRONE_ACTIVE], 1
@@ -356,7 +365,15 @@ randomization:
     fidiv dword [max]
     fild dword [toDiv]
     fmulp st1
-    fisub dword[toSub]
+    fisub dword [toSub]
     fstp dword [randomResult]
+    ffree
+    ret
+
+floatToInt:
+    finit
+    fild dword[randomResult]
+    frndint
+    fstp dword[randomResult]
     ffree
     ret
