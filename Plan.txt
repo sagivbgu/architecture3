@@ -82,7 +82,11 @@ Wednesday, 17.6:
     Printer -> Sagiv
 
 Friday, 19.6:
-    Drone
+    Scheduler -> Zohar
+    Round float to int
+    Random in negative range
+    Drone -> Sagiv
+    
 
 Saturday, 20.6:
     Debugging

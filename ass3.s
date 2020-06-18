@@ -345,5 +345,6 @@ randomization:
     fidiv dword [max]
     fild dword [toDiv] 
     fmulp st1
-    fstp dword[randomResult] 
+    fstp dword [randomResult]
+    ffree
     ret
