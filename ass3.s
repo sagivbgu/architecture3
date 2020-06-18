@@ -76,6 +76,7 @@ section .bss
     CURRENT_CO: resd 1 ; Pointer to the current co-routine struct
 
 section .data
+    global CO_PRINTER
     global CO_SCHEDULER
     global currDrone
     global toDiv
@@ -90,6 +91,7 @@ section .data
                   dd CO_PRINTER_STACK + CO_STKSZ
     
     toDiv: dd 100
+    toSub: dd 0
     randomResult: dw 0
     currDrone: dd 0
 
@@ -207,6 +209,14 @@ section .text
     pop eax
 %endmacro
 
+%macro floatToInt 0
+    finit
+    fild dword[randomResult]
+    frndint
+    fstp dword[randomResult]
+    ffree
+%endmacro
+
 main:
     mov ebp, esp
 
@@ -274,6 +284,7 @@ main:
             jne initializeDronesLoop
 
     start_scheduler:
+        mov dword [currDrone], 0
         pushad ; save registers of main ()
         mov [MAIN_SP], esp ; save ESP of main ()
         mov ebx, CO_SCHEDULER
@@ -343,8 +354,9 @@ randomization:
     fild dword [seed] ;load the random number
     ;now we need to scale the number to the right range
     fidiv dword [max]
-    fild dword [toDiv] 
+    fild dword [toDiv]
     fmulp st1
+    fisub dword[toSub]
     fstp dword [randomResult]
     ffree
     ret
