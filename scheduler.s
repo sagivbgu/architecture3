@@ -1,5 +1,6 @@
 section .text
     global CO_SCHEDULER_CODE
+    extern CO_PRINTER
     extern end_scheduler
     extern drones_N
     extern stepsTillPrinting_K
@@ -7,6 +8,7 @@ section .text
     extern CODronesArray
     extern dronesArray
     extern currDrone
+    extern resume
 
 section .data
     index: dd 0
@@ -36,35 +38,34 @@ section .rodata
 
 %macro activeCurrDrone 0 
     mov dword eax, [currDrone]
-    inc eax
     cmp edx, eax ;edx has the reminder of index%num_drone
     jne %%end
-    ; we need to turn up the i drone + take into consideration the array size bc we go down
-    ;mul dword [DRONE_STRUCT_SIZE]
     mov ebx, [dronesArray]
-    ;mov ecx, [ebx + eax] ; now we point at the active drone
-    dec eax ;the i'th place- contra to line 39
     %%loopActive:
-        cmp eax, 0
-        jge %%continue ;if i is equal-bigger than 0
-        mov dword [eax], drones_N ;else go to the end of the array until you find other active drone
+        cmp eax, [drones_N]
+        jl %%continue ;has to be smaller- else we need to go to the beginning of the array
+        mov dword [eax], 0 ;else go to the end of the array until you find other active drone
         %%continue:
             mul dword [DRONE_STRUCT_SIZE]
-            mov ecx, [ebx + eax] ; now we point at the next drone
+            mov ecx, [ebx + eax + DRONE_ACTIVE] ; now we point at the next drone
             div dword[DRONE_STRUCT_SIZE] ; so eax will be index again
-            cmp dword [ecx + DRONE_ACTIVE], 1 ;checking if the next drone in the array is active
-            je %%end
-            dec eax
+            cmp dword ecx, 1 ;checking if the next drone in the array is active
+            je %%changeActive
+            inc eax
             jmp %%loopActive
+        %%changeActive:
+            mov dword[currDrone], eax
+            mul dword [CO_DRONE_STRUCT_SIZE]
+            mov ebx, [CODronesArray + eax + CO_CODE ]
+            jmp resume
     %%end:
-    mov dword[currDrone], eax
-    ;change to the right co - routine to work TODO
 %endmacro 
 
 %macro printK 0
     cmp edx, 0
     jne endPrint
-    ;; call the printer TODO
+    mov ebx, CO_PRINTER
+    jmp resume
     endPrint:
 %endmacro
 
@@ -72,30 +73,32 @@ section .rodata
     ;;dec [numDrones]
     cmp edx, 0
     jne endR
-    mov dword ecx, [drones_N]
+    mov dword ecx, 0
     mov dword [min], 0
     mov dword [toDestroy], 0
     loopRRound:
-        cmp ecx, 0 ;counter
-        jl endR ;needs to stop when -1 bc 0 its still valid in the array
-        dec ecx ; the index is always -1 
+        cmp ecx, [drones_N] ;counter
+        je endR ;needs to stop when -1 bc 0 its still valid in the array 
         mov ebx, [dronesArray]
-        mov dword eax, [DRONE_STRUCT_SIZE]
-        mul ecx
-        mov edx, [ebx + eax] ;points to drone
-        cmp byte [edx + DRONE_ACTIVE], 0
-        je loopRRound
-        mov eax, 0
-        mov dword eax, [edx + DRONE_SCORE]
-        cmp dword eax, min
-        jl _min
-        jmp loopRRound
+        cmp dword [ebx + DRONE_ACTIVE], 0
+        je _step
+        cmp dword [ebx + DRONE_SCORE] , min
+        jle _min
+        jmp _step
         _min:
-        mov dword [min], eax
-        mov dword [toDestroy], ecx
-        jmp loopRRound
+            mov eax, [ebx + DRONE_SCORE]
+            mov dword [min], eax
+            mov dword [toDestroy], ecx
+        _step:
+            add ebx, DRONE_STRUCT_SIZE
+            inc ecx
+            jmp loopRRound
     endR:
-    dec dword[liveDrones]
+        dec dword[liveDrones]
+        mov eax, [toDestroy]
+        mul dword[DRONE_STRUCT_SIZE]
+        mov ebx, [dronesArray]
+        mov [ebx + eax + DRONE_ACTIVE], 0
 %endmacro
 
 CO_SCHEDULER_CODE:
@@ -111,9 +114,11 @@ CO_SCHEDULER_CODE:
         mov edx, 0
         div dword [drones_N] ;;edx has the reminder
         activeCurrDrone
+        mov eax, [index]
         mov edx, 0
         div dword [stepsTillPrinting_K]
-        printK
+        ;printK
+        mov eax, [index]
         mov edx, 0
         div dword [roundsTillElimination_R]
         RRounds
