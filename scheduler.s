@@ -46,9 +46,12 @@ section .rodata
         jl %%continue ;has to be smaller- else we need to go to the beginning of the array
         mov dword [eax], 0 ;else go to the end of the array until you find other active drone
         %%continue:
-            mul dword [DRONE_STRUCT_SIZE]
+            mov edx, DRONE_STRUCT_SIZE
+            mul edx
             mov ecx, [ebx + eax + DRONE_ACTIVE] ; now we point at the next drone
-            div dword[DRONE_STRUCT_SIZE] ; so eax will be index again
+
+            mov edx, DRONE_STRUCT_SIZE
+            div edx ; so eax will be index again
             cmp dword ecx, 1 ;checking if the next drone in the array is active
             je %%changeActive
             inc eax
@@ -94,11 +97,11 @@ section .rodata
             inc ecx
             jmp loopRRound
     endR:
-        dec dword[liveDrones]
+        dec dword [liveDrones]
         mov eax, [toDestroy]
-        mul dword[DRONE_STRUCT_SIZE]
+        mul dword [DRONE_STRUCT_SIZE]
         mov ebx, [dronesArray]
-        mov [ebx + eax + DRONE_ACTIVE], 0
+        mov dword [ebx + eax + DRONE_ACTIVE], 0
 %endmacro
 
 CO_SCHEDULER_CODE:

@@ -372,8 +372,8 @@ randomization:
 
 floatToInt:
     finit
-    fild dword[randomResult]
+    fld dword [randomResult]
     frndint
-    fstp dword[randomResult]
+    fistp dword [randomResult]
     ffree
     ret
