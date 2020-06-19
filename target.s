@@ -7,16 +7,20 @@ extern CO_DRONE_STRUCT_SIZE
 extern targetXposition
 extern targetYposition
 extern toDiv
+extern toSub
 extern randomization
 extern randomResult
+extern floatToInt
 extern resume
 
 ; Get a random number in [0, %1] and put it in %2
 ; NOTE: %2 can't be eax
-%macro getRandomInto 2
+%macro getRandomIntInto 2
     push eax
     mov dword [toDiv], %1
+    mov dword [toSub], 0
     call randomization
+    call floatToInt
     mov eax, [randomResult]
     mov %2, eax
     pop eax
@@ -29,8 +33,8 @@ CO_TARGET_CODE:
     jmp CO_TARGET_CODE
 
 createTarget:
-    getRandomInto 100, [targetXposition]
-    getRandomInto 100, [targetYposition]
+    getRandomIntInto 100, [targetXposition]
+    getRandomIntInto 100, [targetYposition]
     ret
 
 getNextDroneCoRoutine:
