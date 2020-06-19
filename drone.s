@@ -34,11 +34,10 @@ extern resume
 %endmacro
 
 %macro droneMovenent 1
-    fld dword [ebx + DRONE_SPEED]
+    fld dword [edx + DRONE_SPEED]
     fmulp
-    fild dword [ebx + %1]
+    fild dword [edx + %1]
     faddp
-    frndint
     fild dword [num100]
 
     ; Check above 100:
@@ -53,13 +52,13 @@ extern resume
     jb %%save ; jump if -100 < Y
     fiadd dword [num100] ; Y = Y + 100
 
-    %%save: fstp dword [ebx + %1]
+    %%save: fstp dword [edx + %1]
 %endmacro
 
 CO_DRONE_CODE:
     call getCurrentDroneStructAddr
-    mov ebx, eax
-    ; ebx = Address of the current drone's struct
+    mov edx, eax
+    ; edx = Address of the current drone's struct
     
     call moveDrone
     call updateDroneHeading
@@ -70,7 +69,7 @@ CO_DRONE_CODE:
     cmp eax, 0
     je droneStep
 
-    inc dword [ebx + DRONE_SCORE]
+    inc dword [edx + DRONE_SCORE]
     mov ebx, CO_TARGET
     call resume
 
@@ -95,7 +94,7 @@ getCurrentDroneStructAddr:
 
 moveDrone:
     finit
-    fld dword [ebx + DRONE_HEADING]
+    fld dword [edx + DRONE_HEADING]
     toRadians
     fsincos
     droneMovenent DRONE_POSITION_Y
@@ -110,7 +109,7 @@ updateDroneHeading:
 
     finit
     fld dword [randomResult]
-    fadd dword [ebx + DRONE_HEADING]
+    fadd dword [edx + DRONE_HEADING]
     fild dword [num360]
     fcomip
     ja checkHeadingBelow0 ; jump if 360 > new heading
@@ -124,7 +123,7 @@ updateDroneHeading:
     fiadd dword [num360]
     
     saveDroneHeading:
-    fstp dword [ebx + DRONE_HEADING]
+    fstp dword [edx + DRONE_HEADING]
     ffree
     ret
 
@@ -135,19 +134,19 @@ updateDroneSpeed:
 
     finit
     fld dword [randomResult]
-    fadd dword [ebx + DRONE_SPEED]
+    fadd dword [edx + DRONE_SPEED]
     fild dword [num100]
     fcomip
     ja checkSpeedBelow0 ; jump if 100 > new drone speed
     fild dword [num100]
-    fstp dword [ebx + DRONE_SPEED] ; new drone speed = 100
+    fstp dword [edx + DRONE_SPEED] ; new drone speed = 100
     jmp endUpdateDroneSpeed
     
     checkSpeedBelow0:
     fild dword [num0]
     fcomi
     jb endUpdateDroneSpeed ; jump if 0 < new drone speed
-    fstp dword [ebx + DRONE_SPEED] ; new drone speed = 0
+    fstp dword [edx + DRONE_SPEED] ; new drone speed = 0
 
     endUpdateDroneSpeed:
     ffree
@@ -157,11 +156,11 @@ updateDroneSpeed:
 mayDestroy:
     mov eax, 0
     finit
-    fild dword [DRONE_POSITION_X]
+    fild dword [edx + DRONE_POSITION_X]
     fisub dword [targetXposition] ; st0 = droneX - targatX
     fmul st0, st0
 
-    fild dword [DRONE_POSITION_Y]
+    fild dword [edx + DRONE_POSITION_Y]
     fisub dword [targetYposition] ; st0 = droneY - targatY
     fmul st0, st0
 
