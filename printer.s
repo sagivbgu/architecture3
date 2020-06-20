@@ -81,9 +81,9 @@ CO_PRINTER_CODE:
         printInt ecx
         dec ecx
         print separator
-        printInt [ebx + DRONE_POSITION_X]
+        printFloat [ebx + DRONE_POSITION_X]
         print separator
-        printInt [ebx + DRONE_POSITION_Y]
+        printFloat [ebx + DRONE_POSITION_Y]
         print separator
         printFloat [ebx + DRONE_HEADING]
         print separator

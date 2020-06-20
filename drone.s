@@ -38,7 +38,7 @@ extern resume
 %macro droneMovenent 1
     fld dword [edx + DRONE_SPEED]
     fmulp
-    fild dword [edx + %1]
+    fld dword [edx + %1]
     faddp
     fild dword [num100]
 
@@ -55,8 +55,7 @@ extern resume
     fiadd dword [num100] ; Y = Y + 100
 
     %%save:
-    frndint
-    fistp dword [edx + %1]
+    fstp dword [edx + %1]
 %endmacro
 
 CO_DRONE_CODE:
@@ -158,23 +157,25 @@ updateDroneSpeed:
 
 ; Returns 1 in eax if may destroy, else 0
 mayDestroy:
+    pushad
     mov eax, 0
     finit
-    fild dword [edx + DRONE_POSITION_X]
+    fld dword [edx + DRONE_POSITION_X]
     fisub dword [targetXposition] ; st0 = droneX - targatX
     fmul st0, st0
 
-    fild dword [edx + DRONE_POSITION_Y]
+    fld dword [edx + DRONE_POSITION_Y]
     fisub dword [targetYposition] ; st0 = droneY - targatY
     fmul st0, st0
 
     faddp
     fsqrt
     fld dword [destroyDistance_d]
-    fcomi
+    fcom
     jb endMayDestroy ; jump if d < current distance from target
     mov eax, 1
 
     endMayDestroy:
     ffree
+    popad
     ret

@@ -280,8 +280,8 @@ main:
         mov ecx, 0
 
         initializeDronesLoop:
-            getRandomIntInto 100, [ebx + DRONE_POSITION_X]
-            getRandomIntInto 100, [ebx + DRONE_POSITION_Y]
+            getRandomInto 100, [ebx + DRONE_POSITION_X]
+            getRandomInto 100, [ebx + DRONE_POSITION_Y]
             getRandomInto 100, [ebx + DRONE_SPEED]
             getRandomInto 360, [ebx + DRONE_HEADING]
             mov dword [ebx + DRONE_ACTIVE], 1
