@@ -10,7 +10,6 @@ section .rodata
     DRONE_SCORE: equ 16
     DRONE_ACTIVE: equ 20
     DRONE_STRUCT_SIZE: equ 24
-    CO_DRONE_STRUCT_SIZE: equ 12
 
 section .text
 global CO_PRINTER_CODE
@@ -36,10 +35,16 @@ extern printf
 
 %macro printFloat 1
     pushad
+    
+    finit
+    fld dword %1
+    sub esp, 8
+    fstp qword [esp]
+    ffree
+    
     push dword floatFormat
-    push %1
     call printf
-    add esp, 8
+    add esp, 12
     ; push dword [stdout]
     ; call fflush
     ; add esp, 4
@@ -48,8 +53,8 @@ extern printf
 
 %macro printInt 1
     pushad
+    push dword %1
     push dword integerFormat
-    push %1
     call printf
     add esp, 8
     ; push dword [stdout]
@@ -59,9 +64,9 @@ extern printf
 %endmacro
 
 CO_PRINTER_CODE:
-    printFloat dword [targetXposition]
+    printInt [targetXposition]
     print separator
-    printFloat dword [targetYposition]
+    printInt [targetYposition]
     print newLine
     
     mov ebx, [dronesArray]
@@ -76,23 +81,23 @@ CO_PRINTER_CODE:
         printInt ecx
         dec ecx
         print separator
-        printInt dword [ebx + DRONE_POSITION_X]
+        printInt [ebx + DRONE_POSITION_X]
         print separator
-        printInt dword [ebx + DRONE_POSITION_Y]
+        printInt [ebx + DRONE_POSITION_Y]
         print separator
-        printInt dword [ebx + DRONE_HEADING]
+        printFloat [ebx + DRONE_HEADING]
         print separator
-        printFloat dword [ebx + DRONE_SPEED]
+        printFloat [ebx + DRONE_SPEED]
         print separator
-        printInt dword [ebx + DRONE_SCORE]
+        printInt [ebx + DRONE_SCORE]
         print newLine
 
     proceedPrintLoop:
-        add ebx, CO_DRONE_STRUCT_SIZE
+        add ebx, DRONE_STRUCT_SIZE
         inc ecx
         cmp ecx, [drones_N]
         jne printLoop
     
-    mov ebx, [CO_SCHEDULER]
+    mov ebx, CO_SCHEDULER
     call resume
     jmp CO_PRINTER_CODE

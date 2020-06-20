@@ -41,7 +41,7 @@ createTarget:
 
 getNextDroneCoRoutine:
     mov eax, [currDrone]
-    mov ebx, [CO_DRONE_STRUCT_SIZE]
+    mov ebx, CO_DRONE_STRUCT_SIZE
     mul ebx
     ; Result in edx:eax, assuming we can ignore edx part
     add eax, [CODronesArray]

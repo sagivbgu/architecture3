@@ -72,11 +72,10 @@ section .rodata
 %endmacro
 
 %macro RRounds 0
-    ;;dec [numDrones]
     cmp edx, 0
-    jne endR
+    jne endRFinish
     mov dword ecx, 0
-    mov dword [min], 0
+    mov dword [min], 0xFFFFFFFF
     mov dword [toDestroy], 0
     loopRRound:
         cmp ecx, [drones_N] ;counter
@@ -102,6 +101,7 @@ section .rodata
         mul ebx
         mov ebx, [dronesArray]
         mov dword [ebx + eax + DRONE_ACTIVE], 0
+    endRFinish:
 %endmacro
 
 CO_SCHEDULER_CODE:
@@ -121,14 +121,14 @@ CO_SCHEDULER_CODE:
         mov eax, [index]
         mov edx, 0
         div dword [stepsTillPrinting_K]
-        ;printK
+        printK
         mov eax, [index]
         mov edx, 0
         div dword [roundsTillElimination_R]
         RRounds
         jmp loopScheduler
-        endLoop:
-
-    ;;call printer for the winner
-    ret ; TODO
-    jmp end_scheduler
+        
+    endLoop:
+        mov ebx, CO_PRINTER
+        call resume
+        jmp end_scheduler

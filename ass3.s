@@ -14,8 +14,8 @@ section .rodata
     global floatFormat
     global integerFormat
 
-    integerFormat: db "%d", 0
-    floatFormat: db "%f", 0
+    integerFormat: db "%d", 0, 0
+    floatFormat: db "%f", 0, 0
     printStringFormat: db "%s", 10, 0
 
     max: dd 0xFFFF
