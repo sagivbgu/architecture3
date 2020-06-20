@@ -18,7 +18,7 @@ section .rodata
     floatFormat: db "%f", 0
     printStringFormat: db "%s", 10, 0
 
-    max: dw 0xFFFF
+    max: dd 0xFFFF
 
     CO_STKSZ: equ 16*1024 ; Co-routine stack size
 
@@ -362,10 +362,12 @@ randomization:
     finit ; initialize the fp system
     fild dword [seed] ;load the random number
     ;now we need to scale the number to the right range
-    fidiv dword [max]
+    fild dword [max]
+    fdivp
     fild dword [toDiv]
-    fmulp st1
-    fisub dword [toSub]
+    fmulp
+    fild dword [toSub]
+    fsubp
     fstp dword [randomResult]
     ffree
     ret
