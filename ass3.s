@@ -287,7 +287,7 @@ main:
             mov dword [ebx + DRONE_ACTIVE], 1
             mov dword [ebx + DRONE_SCORE], 0
 
-            add ebx, CO_DRONE_STRUCT_SIZE
+            add ebx, DRONE_STRUCT_SIZE
             inc ecx
             cmp ecx, [drones_N]
             jne initializeDronesLoop
