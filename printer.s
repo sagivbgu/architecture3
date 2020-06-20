@@ -3,18 +3,20 @@ section .rodata
     newLine: db 10, 0 ; '\n'
     separator: db "," , 0
 
+    DRONE_POSITION_X: equ 0
+    DRONE_POSITION_Y: equ 4
+    DRONE_SPEED: equ 8
+    DRONE_HEADING: equ 12
+    DRONE_SCORE: equ 16
+    DRONE_ACTIVE: equ 20
+    DRONE_STRUCT_SIZE: equ 24
+    CO_DRONE_STRUCT_SIZE: equ 12
+
 section .text
 global CO_PRINTER_CODE
 extern CO_SCHEDULER
 extern drones_N
 extern dronesArray
-extern DRONE_POSITION_X
-extern DRONE_POSITION_Y
-extern DRONE_SPEED
-extern DRONE_HEADING
-extern DRONE_SCORE
-extern DRONE_ACTIVE
-extern CO_DRONE_STRUCT_SIZE
 extern targetXposition
 extern targetYposition
 extern integerFormat

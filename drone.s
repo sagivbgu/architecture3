@@ -4,6 +4,14 @@ section .rodata
     num100: dd 100
     num0: dd 0
 
+    DRONE_POSITION_X: equ 0
+    DRONE_POSITION_Y: equ 4
+    DRONE_SPEED: equ 8
+    DRONE_HEADING: equ 12
+    DRONE_SCORE: equ 16
+    DRONE_ACTIVE: equ 20
+    DRONE_STRUCT_SIZE: equ 24
+
 section .text
 global CO_DRONE_CODE
 extern CO_SCHEDULER
@@ -11,12 +19,6 @@ extern CO_TARGET
 extern destroyDistance_d
 extern dronesArray
 extern currDrone
-extern DRONE_POSITION_X
-extern DRONE_POSITION_Y
-extern DRONE_SPEED
-extern DRONE_HEADING
-extern DRONE_SCORE
-extern DRONE_STRUCT_SIZE
 extern targetXposition
 extern targetYposition
 extern toDiv
@@ -29,7 +31,7 @@ extern resume
 %macro toRadians 0
     fldpi
     fmulp
-    fld dword [num180]
+    fild dword [num180]
     fdivp
 %endmacro
 
@@ -42,17 +44,19 @@ extern resume
 
     ; Check above 100:
     fcomi
-    ja %%checkBelowMinus100 ; jump if 100 > Y
+    ja %%checkBelow0 ; jump if 100 > Y
     fsubp st1, st0 ; Y = Y - 100
     jmp %%save
 
-    %%checkBelowMinus100:
-    fchs ; Change sign. st0 = -100
+    %%checkBelow0:
+    fisub dword [num100] ; Change sign. st0 = 0
     fcomip
-    jb %%save ; jump if -100 < Y
+    jb %%save ; jump if 0 < Y
     fiadd dword [num100] ; Y = Y + 100
 
-    %%save: fstp dword [edx + %1]
+    %%save:
+    frndint
+    fistp dword [edx + %1]
 %endmacro
 
 CO_DRONE_CODE:
@@ -85,7 +89,7 @@ CO_DRONE_CODE:
 getCurrentDroneStructAddr:
     push ebx
     mov eax, [currDrone]
-    mov ebx, [DRONE_STRUCT_SIZE]
+    mov ebx, DRONE_STRUCT_SIZE
     mul ebx
     ; Result in edx:eax, assuming we can ignore edx part
     add eax, [dronesArray] 
@@ -97,8 +101,8 @@ moveDrone:
     fld dword [edx + DRONE_HEADING]
     toRadians
     fsincos
-    droneMovenent DRONE_POSITION_Y
     droneMovenent DRONE_POSITION_X
+    droneMovenent DRONE_POSITION_Y
     ffree
     ret
 
@@ -168,7 +172,7 @@ mayDestroy:
     fsqrt
     fld dword [destroyDistance_d]
     fcomi
-    ja endMayDestroy ; jump if d > current distance from target
+    jb endMayDestroy ; jump if d < current distance from target
     mov eax, 1
 
     endMayDestroy:

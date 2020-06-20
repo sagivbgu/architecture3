@@ -1,9 +1,11 @@
+section .rodata
+CO_DRONE_STRUCT_SIZE: equ 12
+
 section .text
 global CO_TARGET_CODE
 global createTarget
 extern CODronesArray
 extern currDrone
-extern CO_DRONE_STRUCT_SIZE
 extern targetXposition
 extern targetYposition
 extern toDiv

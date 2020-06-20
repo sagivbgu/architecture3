@@ -15,6 +15,7 @@ section .data
     min: dd 0
     toDestroy: dd 0
     liveDrones: dd 0
+    index_2: dd 0
 
 section .rodata
     CO_STKSZ: equ 16*1024 ; Co-routine stack size
@@ -37,38 +38,36 @@ section .rodata
     DRONE_STRUCT_SIZE: equ 24
 
 %macro activeCurrDrone 0 
-    mov dword eax, [currDrone]
-    cmp edx, eax ;edx has the reminder of index%num_drone
-    jne %%end
     mov ebx, [dronesArray]
+    mov ecx, [currDrone] 
     %%loopActive:
-        cmp eax, [drones_N]
+        cmp ecx, [drones_N]
         jl %%continue ;has to be smaller- else we need to go to the beginning of the array
-        mov dword [eax], 0 ;else go to the end of the array until you find other active drone
+        mov ecx, 0 ;else go to the end of the array until you find other active drone
+        mov eax, ecx
         %%continue:
             mov edx, DRONE_STRUCT_SIZE
             mul edx
-            mov ecx, [ebx + eax + DRONE_ACTIVE] ; now we point at the next drone
-
-            mov edx, DRONE_STRUCT_SIZE
-            div edx ; so eax will be index again
-            cmp dword ecx, 1 ;checking if the next drone in the array is active
+            mov edx, [ebx + eax + DRONE_ACTIVE] ; now we point at the next drone
+            cmp dword edx, 1 ;checking if the next drone in the array is active
             je %%changeActive
-            inc eax
+            inc ecx
             jmp %%loopActive
         %%changeActive:
-            mov dword[currDrone], eax
-            mul dword [CO_DRONE_STRUCT_SIZE]
-            mov ebx, [CODronesArray + eax + CO_CODE ]
-            jmp resume
-    %%end:
+            mov eax, ecx
+            mov dword [currDrone], eax
+            mov edx, CO_DRONE_STRUCT_SIZE
+            mul edx
+            mov ebx, [CODronesArray]
+            add ebx, eax
+            call resume
 %endmacro 
 
 %macro printK 0
     cmp edx, 0
     jne endPrint
     mov ebx, CO_PRINTER
-    jmp resume
+    call resume
     endPrint:
 %endmacro
 
@@ -99,7 +98,8 @@ section .rodata
     endR:
         dec dword [liveDrones]
         mov eax, [toDestroy]
-        mul dword [DRONE_STRUCT_SIZE]
+        mov ebx, DRONE_STRUCT_SIZE
+        mul ebx
         mov ebx, [dronesArray]
         mov dword [ebx + eax + DRONE_ACTIVE], 0
 %endmacro
@@ -117,6 +117,7 @@ CO_SCHEDULER_CODE:
         mov edx, 0
         div dword [drones_N] ;;edx has the reminder
         activeCurrDrone
+        inc dword[index]
         mov eax, [index]
         mov edx, 0
         div dword [stepsTillPrinting_K]
@@ -125,7 +126,6 @@ CO_SCHEDULER_CODE:
         mov edx, 0
         div dword [roundsTillElimination_R]
         RRounds
-        inc dword[index]
         jmp loopScheduler
         endLoop:
 
