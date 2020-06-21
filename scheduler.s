@@ -11,11 +11,9 @@ section .text
     extern resume
 
 section .data
-    index: dd 0
     min: dd 0
     toDestroy: dd 0
     liveDrones: dd 0
-    index_2: dd 0
 
 section .rodata
     CO_STKSZ: equ 16*1024 ; Co-routine stack size
@@ -106,8 +104,9 @@ section .rodata
         je endR ;needs to stop when -1 bc 0 its still valid in the array 
         cmp dword [ebx + DRONE_ACTIVE], 0
         je _step
-        cmp dword [ebx + DRONE_SCORE] , min
-        jle _min
+        mov eax, [min]
+        cmp dword [ebx + DRONE_SCORE], eax
+        jbe _min
         jmp _step
         _min:
             mov eax, [ebx + DRONE_SCORE]
