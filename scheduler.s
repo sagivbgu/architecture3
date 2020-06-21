@@ -39,13 +39,13 @@ section .rodata
 
 %macro activeCurrDrone 0 
     mov ebx, [dronesArray]
-    mov ecx, [currDrone] 
+    mov ecx, [currDrone]
     %%loopActive:
         cmp ecx, [drones_N]
         jl %%continue ;has to be smaller- else we need to go to the beginning of the array
         mov ecx, 0 ;else go to the end of the array until you find other active drone
-        mov eax, ecx
         %%continue:
+            mov eax, ecx
             mov edx, DRONE_STRUCT_SIZE
             mul edx
             mov edx, [ebx + eax + DRONE_ACTIVE] ; now we point at the next drone
@@ -72,15 +72,17 @@ section .rodata
 %endmacro
 
 %macro RRounds 0
+    
     cmp edx, 0
     jne endRFinish
     mov dword ecx, 0
     mov dword [min], 0xFFFFFFFF
     mov dword [toDestroy], 0
+    mov ebx, [dronesArray]
+    
     loopRRound:
         cmp ecx, [drones_N] ;counter
         je endR ;needs to stop when -1 bc 0 its still valid in the array 
-        mov ebx, [dronesArray]
         cmp dword [ebx + DRONE_ACTIVE], 0
         je _step
         cmp dword [ebx + DRONE_SCORE] , min
@@ -105,7 +107,6 @@ section .rodata
 %endmacro
 
 CO_SCHEDULER_CODE:
-    mov eax, 0 
     mov eax, [drones_N]
     mov dword [liveDrones], eax
     loopScheduler:
@@ -117,15 +118,18 @@ CO_SCHEDULER_CODE:
         mov edx, 0
         div dword [drones_N] ;;edx has the reminder
         activeCurrDrone
-        inc dword[index]
+        
         mov eax, [index]
         mov edx, 0
         div dword [stepsTillPrinting_K]
         printK
+        
+        inc dword[index]
         mov eax, [index]
         mov edx, 0
         div dword [roundsTillElimination_R]
         RRounds
+
         jmp loopScheduler
         
     endLoop:
