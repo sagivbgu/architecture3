@@ -58,40 +58,6 @@ section .rodata
     ; Result in eax
 %endmacro
 
-%macro activeCurrDrone 0 
-    mov ebx, [dronesArray]
-    mov ecx, [currDrone]
-    %%loopActive:
-        cmp ecx, [drones_N]
-        jl %%continue ;has to be smaller- else we need to go to the beginning of the array
-        mov ecx, 0 ;else go to the end of the array until you find other active drone
-        %%continue:
-            mov eax, ecx
-            mov edx, DRONE_STRUCT_SIZE
-            mul edx
-            mov edx, [ebx + eax + DRONE_ACTIVE] ; now we point at the next drone
-            cmp dword edx, 1 ;checking if the next drone in the array is active
-            je %%changeActive
-            inc ecx
-            jmp %%loopActive
-        %%changeActive:
-            mov eax, ecx
-            mov dword [currDrone], eax
-            mov edx, CO_DRONE_STRUCT_SIZE
-            mul edx
-            mov ebx, [CODronesArray]
-            add ebx, eax
-            call resume
-%endmacro 
-
-%macro printK 0
-    cmp edx, 0
-    jne endPrint
-    mov ebx, [CO_PRINTER]
-    call resume
-    endPrint:
-%endmacro
-
 %macro DestroyDrone 0
     pushad
     mov dword ecx, 0
