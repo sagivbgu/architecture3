@@ -147,11 +147,13 @@ updateDroneSpeed:
     
     checkSpeedBelow0:
     fild dword [num0]
-    fcomi
+    fcomip
     jb endUpdateDroneSpeed ; jump if 0 < new drone speed
+    fild dword [num0]
     fstp dword [edx + DRONE_SPEED] ; new drone speed = 0
 
     endUpdateDroneSpeed:
+    fstp dword [edx + DRONE_SPEED]
     ffree
     ret
 

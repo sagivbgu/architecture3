@@ -37,6 +37,29 @@ section .rodata
     DRONE_ACTIVE: equ 20
     DRONE_STRUCT_SIZE: equ 24
 
+; %2 must not be eax!!
+%macro Divide 2
+    push ecx
+    mov edx, 0
+    mov dword eax, %1
+    mov dword ecx, %2
+    div ecx
+    pop ecx
+    ; Division in eax
+    ; Remainder in edx
+%endmacro
+
+; %2 must not be eax!!
+%macro Multiply 2
+    push ecx
+    mov edx, 0
+    mov dword eax, %1
+    mov dword ecx, %2
+    mul ecx
+    pop ecx
+    ; Result in eax
+%endmacro
+
 %macro activeCurrDrone 0 
     mov ebx, [dronesArray]
     mov ecx, [currDrone]
@@ -71,10 +94,8 @@ section .rodata
     endPrint:
 %endmacro
 
-%macro RRounds 0
-    
-    cmp edx, 0
-    jne endRFinish
+%macro DestroyDrone 0
+    pushad
     mov dword ecx, 0
     mov dword [min], 0xFFFFFFFF
     mov dword [toDestroy], 0
@@ -103,36 +124,54 @@ section .rodata
         mul ebx
         mov ebx, [dronesArray]
         mov dword [ebx + eax + DRONE_ACTIVE], 0
-    endRFinish:
+        popad
 %endmacro
 
 CO_SCHEDULER_CODE:
     mov eax, [drones_N]
     mov dword [liveDrones], eax
+    mov ecx, 0 ; ecx = i
     loopScheduler:
-        mov ebx, 1
-        cmp ebx, [liveDrones] ;checking if there is only one drone left
-        je endLoop
-        ;;------------------ we have more than one drone
-        mov eax, [index]
-        mov edx, 0
-        div dword [drones_N] ;;edx has the reminder
-        activeCurrDrone
+        ; Check if drone is active
+        Divide ecx, [drones_N] ;edx = i%N
+        mov dword [currDrone], edx
+        Multiply edx, DRONE_STRUCT_SIZE
+        mov ebx, [dronesArray]
+        mov edx, [ebx + eax + DRONE_ACTIVE] ; Current drone's DRONE_ACTIVE
+        cmp edx, 0
+        je printBoard
         
-        mov eax, [index]
-        mov edx, 0
-        div dword [stepsTillPrinting_K]
-        printK
-        
-        inc dword[index]
-        mov eax, [index]
-        mov edx, 0
-        div dword [roundsTillElimination_R]
-        RRounds
+        ; Call drone co-routine
+        Multiply [currDrone], CO_DRONE_STRUCT_SIZE
+        mov ebx, [CODronesArray]
+        add ebx, eax
+        call resume
 
+        printBoard:
+        Divide ecx, [stepsTillPrinting_K] ; edx = i%K
+        cmp edx, 0 ; i%K
+        jne endPrint
+        mov ebx, [CO_PRINTER]
+        call resume
+        endPrint:
+
+        ;if (i/N)%R == 0 && i%N ==0 
+        Divide ecx, [drones_N] ; eax = i/N, edx = i%N
+        mov ebx, edx ; ebx = i%N
+        Divide eax, [roundsTillElimination_R] ; edx = (i/N)%R
+        cmp edx, 0
+        jne loopSchedulerStep
+        cmp ebx, 0
+        jne loopSchedulerStep
+        DestroyDrone
+
+        loopSchedulerStep:
+        inc ecx
+        cmp dword [liveDrones], 1 ;checking if there is only one drone left
+        je endScheduler
         jmp loopScheduler
-        
-    endLoop:
+
+    endScheduler:
         mov ebx, [CO_PRINTER]
         call resume
         jmp end_scheduler
