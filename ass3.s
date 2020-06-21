@@ -85,16 +85,20 @@ section .data
     global randomResult
     
     ; Co-routine structs
-    CO_SCHEDULER: dd CO_SCHEDULER_CODE
+    CO_S: dd CO_SCHEDULER_CODE
                   dd CO_SCHEDULER_STACK + CO_STKSZ
-    CO_TARGET:    dd CO_TARGET_CODE
+    CO_T:    dd CO_TARGET_CODE
                   dd CO_TARGET_STACK + CO_STKSZ
-    CO_PRINTER:   dd CO_PRINTER_CODE
+    CO_P:   dd CO_PRINTER_CODE
                   dd CO_PRINTER_STACK + CO_STKSZ
+    
+    CO_SCHEDULER: dd CO_S
+    CO_TARGET: dd CO_T
+    CO_PRINTER: dd CO_P
     
     toDiv: dd 100
     toSub: dd 0
-    randomResult: dw 0
+    randomResult: dd 0
     currDrone: dd 0
 
 section .text
@@ -241,16 +245,16 @@ main:
         parseArgument integerFormat, seed
 
     initializeScheduler:
-        mov ebx, CO_SCHEDULER
+        mov ebx, [CO_SCHEDULER]
         call co_init
 
     initializePrinter:
-        mov ebx, CO_PRINTER
+        mov ebx, [CO_PRINTER]
         call co_init
 
     initializeTarget:
         call createTarget
-        mov ebx, CO_TARGET
+        mov ebx, [CO_TARGET]
         call co_init
 
     allocateDronesArray:
@@ -296,7 +300,7 @@ main:
         mov dword [currDrone], 0
         pushad ; save registers of main ()
         mov [MAIN_SP], esp ; save ESP of main ()
-        mov ebx, CO_SCHEDULER
+        mov ebx, [CO_SCHEDULER]
         jmp do_resume
         
     ; Needs to be jumped into

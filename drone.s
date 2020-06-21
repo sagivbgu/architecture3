@@ -73,14 +73,14 @@ CO_DRONE_CODE:
     je droneStep
 
     inc dword [edx + DRONE_SCORE]
-    mov ebx, CO_TARGET
+    mov ebx, [CO_TARGET]
     call resume
 
     droneStep:
     call moveDrone
     call updateDroneHeading
     call updateDroneSpeed
-    mov ebx, CO_SCHEDULER
+    mov ebx, [CO_SCHEDULER]
     call resume
     jmp droneLoop
 
@@ -157,25 +157,23 @@ updateDroneSpeed:
 
 ; Returns 1 in eax if may destroy, else 0
 mayDestroy:
-    pushad
     mov eax, 0
     finit
     fld dword [edx + DRONE_POSITION_X]
-    fisub dword [targetXposition] ; st0 = droneX - targatX
+    fsub dword [targetXposition] ; st0 = droneX - targatX
     fmul st0, st0
 
     fld dword [edx + DRONE_POSITION_Y]
-    fisub dword [targetYposition] ; st0 = droneY - targatY
+    fsub dword [targetYposition] ; st0 = droneY - targatY
     fmul st0, st0
 
     faddp
     fsqrt
     fld dword [destroyDistance_d]
-    fcom
+    fcomi
     jb endMayDestroy ; jump if d < current distance from target
     mov eax, 1
 
     endMayDestroy:
     ffree
-    popad
     ret

@@ -64,9 +64,9 @@ extern printf
 %endmacro
 
 CO_PRINTER_CODE:
-    printInt [targetXposition]
+    printFloat [targetXposition]
     print separator
-    printInt [targetYposition]
+    printFloat [targetYposition]
     print newLine
     
     mov ebx, [dronesArray]
@@ -98,6 +98,6 @@ CO_PRINTER_CODE:
         cmp ecx, [drones_N]
         jne printLoop
     
-    mov ebx, CO_SCHEDULER
+    mov ebx, [CO_SCHEDULER]
     call resume
     jmp CO_PRINTER_CODE

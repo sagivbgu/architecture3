@@ -66,7 +66,7 @@ section .rodata
 %macro printK 0
     cmp edx, 0
     jne endPrint
-    mov ebx, CO_PRINTER
+    mov ebx, [CO_PRINTER]
     call resume
     endPrint:
 %endmacro
@@ -129,6 +129,6 @@ CO_SCHEDULER_CODE:
         jmp loopScheduler
         
     endLoop:
-        mov ebx, CO_PRINTER
+        mov ebx, [CO_PRINTER]
         call resume
         jmp end_scheduler
